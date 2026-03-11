@@ -10,7 +10,7 @@
   // @namespace    https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
   // @updateURL    https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
   // @downloadURL  https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
-  // @version      1.7
+  // @version      1.8
   // ==/UserScript==
 
   (function () {
@@ -262,7 +262,7 @@
         <div id="sourceex-wrapper">
           <div id="sourceex-drag" title="Move"></div>
           <button type="button" id="sourceex-toggle">SourceEX</button>
-          <div id="sourceex-minimal-tab" title="SourceEX (Ctrl+Shift+E)">SX</div>
+          <div id="sourceex-minimal-tab" title="SourceEX">SX</div>
           <div id="sourceex-panel">
             <div id="sourceex-title" title="Move">
               <span id="sourceex-title-text">SourceEX</span>
@@ -315,13 +315,6 @@
             GM.setValue(FULLY_HIDDEN_KEY, hidden).catch(() => {});
             e.preventDefault();
           }
-        }
-        if (e.key.toLowerCase() === 'e' && e.ctrlKey && e.shiftKey) {
-          panel.classList.add('open');
-          GM.setValue(PANEL_OPEN_KEY, true).catch(() => {});
-          renderList();
-          startLiveResourceObserver();
-          e.preventDefault();
         }
       });
       document.addEventListener('keyup', (e) => {
