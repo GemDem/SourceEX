@@ -14,6 +14,7 @@
 
     const STORAGE_KEY = 'sourceex_pages';
     const SEARCH_FILTER_KEY = 'sourceex_search_filter';
+    const BUTTON_HIDDEN_KEY = 'sourceex_button_hidden';
     const COLLECT_DELAY_MS = 2500;
     const PANEL_MIN_WIDTH = 280;
     const PANEL_MIN_HEIGHT = 200;
@@ -166,7 +167,14 @@
           #sourceex-drag:hover { color: #aaa; }
           #sourceex-drag::before { content: '⋮⋮'; font-size: 12px; letter-spacing: -2px; }
           #sourceex-toggle { padding: 8px 12px; background: #1a1a2e; color: #eee; border: 1px solid #333; border-radius: 0 8px 8px 0; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+          #sourceex-button-hidden #sourceex-drag,
+          #sourceex-button-hidden #sourceex-toggle { display: none !important; }
           #sourceex-toggle:hover { background: #16213e; }
+          #sourceex-wrapper.sourceex-button-hidden #sourceex-drag,
+          #sourceex-wrapper.sourceex-button-hidden #sourceex-toggle { display: none !important; }
+          #sourceex-minimal-tab { display: none; padding: 6px 10px; background: #1a1a2e; color: #888; border: 1px solid #333; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+          #sourceex-wrapper.sourceex-button-hidden #sourceex-minimal-tab { display: flex; align-items: center; justify-content: center; }
+          #sourceex-minimal-tab:hover { background: #16213e; color: #eee; }
           #sourceex-panel { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; width: 420px; max-width: calc(100vw - 24px); height: 360px; max-height: calc(100vh - 72px); min-width: 280px; min-height: 200px; z-index: 2147483647; background: #1a1a2e; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); overflow: hidden; flex-direction: column; box-sizing: border-box; }
           #sourceex-panel.open { display: flex; }
           #sourceex-resize { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; background: linear-gradient(135deg, transparent 50%, #333 50%, #333 55%, transparent 55%); border-radius: 0 0 8px 0; }
@@ -200,17 +208,50 @@
           .sourceex-export-btn:hover { background: #16213e; }
           .sourceex-cat-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex-shrink: 0; }
           .sourceex-cat-btn { padding: 2px 6px; font-size: 10px; cursor: pointer; border-radius: 4px; border: 1px solid #333; background: #252540; color: #a0a0a0; }
+          .sourceex-cat-btn.has-count { background: #1e3a5f; color: #b8d4f0; border-color: #2a4a6e; }
           .sourceex-cat-btn:hover { background: #333355; color: #eee; }
+          .sourceex-cat-btn.has-count:hover { background: #2a4a6e; color: #eee; }
           .sourceex-cat-btn.active { background: #0f3460; color: #eee; border-color: #3a6ea5; }
           .sourceex-cat-btn .sourceex-cat-num { margin-left: 2px; font-weight: 600; color: #8ab4f8; }
+          .sourceex-cat-btn[data-category="all"].has-count { background: #1a3a4a; color: #5ab9e6; border-color: #2a5060; }
+          .sourceex-cat-btn[data-category="all"].has-count:hover { background: #2a5060; }
+          .sourceex-cat-btn[data-category="all"].active { background: #0a3040; border-color: #5ab9e6; }
+          .sourceex-cat-btn[data-category="all"].has-count .sourceex-cat-num { color: #5ab9e6; }
+          .sourceex-cat-btn[data-category="css"].has-count { background: #3d2e1a; color: #e6a23c; border-color: #5c4a2a; }
+          .sourceex-cat-btn[data-category="css"].has-count:hover { background: #5c4a2a; }
+          .sourceex-cat-btn[data-category="css"].active { background: #5c3d0a; border-color: #e6a23c; }
+          .sourceex-cat-btn[data-category="css"].has-count .sourceex-cat-num { color: #e6a23c; }
+          .sourceex-cat-btn[data-category="js"].has-count { background: #3d3a1a; color: #e6c229; border-color: #5c582a; }
+          .sourceex-cat-btn[data-category="js"].has-count:hover { background: #5c582a; }
+          .sourceex-cat-btn[data-category="js"].active { background: #5c4d0a; border-color: #e6c229; }
+          .sourceex-cat-btn[data-category="js"].has-count .sourceex-cat-num { color: #e6c229; }
+          .sourceex-cat-btn[data-category="img"].has-count { background: #1a2e1a; color: #67c23a; border-color: #2a4a2a; }
+          .sourceex-cat-btn[data-category="img"].has-count:hover { background: #2a4a2a; }
+          .sourceex-cat-btn[data-category="img"].active { background: #0a3d0a; border-color: #67c23a; }
+          .sourceex-cat-btn[data-category="img"].has-count .sourceex-cat-num { color: #67c23a; }
+          .sourceex-cat-btn[data-category="xhr"].has-count { background: #2e1a3d; color: #b87fd8; border-color: #4a2a5c; }
+          .sourceex-cat-btn[data-category="xhr"].has-count:hover { background: #4a2a5c; }
+          .sourceex-cat-btn[data-category="xhr"].active { background: #3d0a5c; border-color: #b87fd8; }
+          .sourceex-cat-btn[data-category="xhr"].has-count .sourceex-cat-num { color: #b87fd8; }
+          .sourceex-cat-btn[data-category="other"].has-count { background: #2a2a2e; color: #a0a8b0; border-color: #404050; }
+          .sourceex-cat-btn[data-category="other"].has-count:hover { background: #404050; }
+          .sourceex-cat-btn[data-category="other"].active { background: #1a1a20; border-color: #a0a8b0; }
+          .sourceex-cat-btn[data-category="other"].has-count .sourceex-cat-num { color: #a0a8b0; }
+          .sourceex-resource[data-category="css"] .sourceex-resource-type { color: #e6a23c; }
+          .sourceex-resource[data-category="js"] .sourceex-resource-type { color: #e6c229; }
+          .sourceex-resource[data-category="img"] .sourceex-resource-type { color: #67c23a; }
+          .sourceex-resource[data-category="xhr"] .sourceex-resource-type { color: #b87fd8; }
+          .sourceex-resource[data-category="other"] .sourceex-resource-type { color: #a0a8b0; }
         </style>
         <div id="sourceex-wrapper">
           <div id="sourceex-drag" title="Move"></div>
           <button type="button" id="sourceex-toggle">SourceEX</button>
+          <div id="sourceex-minimal-tab" title="SourceEX (Ctrl+Shift+E)">SX</div>
           <div id="sourceex-panel">
             <div id="sourceex-title">
               <span id="sourceex-title-text">SourceEX</span>
               <div id="sourceex-title-buttons">
+                <button type="button" id="sourceex-hide-btn" title="Hide the floating button (use SX tab or Ctrl+Shift+E to open)">Hide button</button>
                 <button type="button" id="sourceex-fresh">Refresh</button>
                 <button type="button" id="sourceex-export-all" disabled>Export all</button>
                 <button type="button" id="sourceex-clear">Clear</button>
@@ -470,7 +511,7 @@
             item.className = 'sourceex-item';
             item.dataset.pageUrl = pageUrl;
             if (savedFilter) item.dataset.activeCategory = savedFilter;
-            const displayUrl = pageUrl.length > 50 ? pageUrl.slice(0, 47) + '...' : pageUrl;
+            const displayUrl = pageUrl;
             const detail = document.createElement('div');
             detail.className = 'sourceex-detail';
             if (isExpanded) {
@@ -519,7 +560,8 @@
               const n = cat === 'all' ? allCount : (counts[cat] || 0);
               const btn = document.createElement('button');
               btn.type = 'button';
-              btn.className = 'sourceex-cat-btn' + (activeCat === (cat === 'all' ? '' : cat) ? ' active' : '');
+              btn.className = 'sourceex-cat-btn' + (activeCat === (cat === 'all' ? '' : cat) ? ' active' : '') + (n > 0 ? ' has-count' : '');
+              btn.dataset.category = cat;
               btn.title = cat === 'all' ? 'Show all' : `Show ${cat} only`;
               btn.innerHTML = label + ' <span class="sourceex-cat-num">' + n + '</span>';
               btn.addEventListener('click', (e) => {
