@@ -5,8 +5,10 @@
   // @grant        GM.setValue
   // @grant        GM.getValue
   // @run-at       document_start
-  // @namespace    https://github.com/GemDem/SourceEx
-  // @version      1.6
+  // @namespace    https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
+  // @updateURL    https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
+  // @downloadURL  https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
+  // @version      1.7
   // ==/UserScript==
 
   (function () {
