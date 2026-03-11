@@ -181,7 +181,7 @@
           #sourceex-resize:hover { background: linear-gradient(135deg, transparent 50%, #555 50%, #555 55%, transparent 55%); }
           #sourceex-resize-left { position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; cursor: sw-resize; background: linear-gradient(225deg, transparent 50%, #333 50%, #333 55%, transparent 55%); border-radius: 0 0 0 8px; }
           #sourceex-resize-left:hover { background: linear-gradient(225deg, transparent 50%, #555 50%, #555 55%, transparent 55%); }
-          #sourceex-title { padding: 12px; font-weight: 700; border-bottom: 1px solid #333; background: #16213e; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+          #sourceex-title { padding: 12px; font-weight: 700; border-bottom: 1px solid #333; background: #16213e; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; cursor: move; }
           #sourceex-title-text { flex: 1; min-width: 0; }
           #sourceex-title-buttons { display: flex; gap: 6px; }
           #sourceex-title-buttons button { padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #eee; }
@@ -248,7 +248,7 @@
           <button type="button" id="sourceex-toggle">SourceEX</button>
           <div id="sourceex-minimal-tab" title="SourceEX (Ctrl+Shift+E)">SX</div>
           <div id="sourceex-panel">
-            <div id="sourceex-title">
+            <div id="sourceex-title" title="Move">
               <span id="sourceex-title-text">SourceEX</span>
               <div id="sourceex-title-buttons">
                 <button type="button" id="sourceex-hide-btn" title="Hide the floating button (use SX tab or Ctrl+Shift+E to open)">Hide button</button>
@@ -278,6 +278,7 @@
       const searchInput = document.getElementById('sourceex-search');
       const resizeHandle = document.getElementById('sourceex-resize');
       const resizeHandleLeft = document.getElementById('sourceex-resize-left');
+      const titleBar = document.getElementById('sourceex-title');
 
       GM.getValue(POSITION_KEY, '{}').then((raw) => {
         const pos = safeParseJson(raw, {});
@@ -356,6 +357,23 @@
         wrapper.style.right = 'auto';
         document.addEventListener('mousemove', onDragMove);
         document.addEventListener('mouseup', onDragUp);
+      });
+
+      function startDrag(e) {
+        if (e.button !== 0) return;
+        if (e.target.closest('button') || e.target.closest('#sourceex-search')) return;
+        e.preventDefault();
+        const rect = wrapper.getBoundingClientRect();
+        dragStart = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top };
+        wrapper.style.left = rect.left + 'px';
+        wrapper.style.top = rect.top + 'px';
+        wrapper.style.right = 'auto';
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragUp);
+      }
+      titleBar.addEventListener('mousedown', (e) => {
+        if (!panel.classList.contains('open')) return;
+        startDrag(e);
       });
 
       let resizeStart = null;
