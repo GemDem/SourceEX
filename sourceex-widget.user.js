@@ -15,6 +15,7 @@
     const STORAGE_KEY = 'sourceex_pages';
     const SEARCH_FILTER_KEY = 'sourceex_search_filter';
     const BUTTON_HIDDEN_KEY = 'sourceex_button_hidden';
+    const FULLY_HIDDEN_KEY = 'sourceex_fully_hidden';
     const COLLECT_DELAY_MS = 2500;
     const PANEL_MIN_WIDTH = 280;
     const PANEL_MIN_HEIGHT = 200;
@@ -188,6 +189,7 @@
           #sourceex-title-buttons button:hover { background: #16213e; }
           #sourceex-title-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
           #sourceex-title-buttons button:disabled:hover { background: #0f3460; }
+          .sourceex-hide-hint { font-size: 10px; color: #666; margin-right: 4px; align-self: center; }
           #sourceex-search { flex: 1 1 100%; margin-top: 6px; padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #333; background: #0d0d1a; color: #e0e0e0; box-sizing: border-box; }
           #sourceex-search::placeholder { color: #666; }
           #sourceex-search:focus { outline: none; border-color: #0f3460; }
@@ -242,6 +244,7 @@
           .sourceex-resource[data-category="img"] .sourceex-resource-type { color: #67c23a; }
           .sourceex-resource[data-category="xhr"] .sourceex-resource-type { color: #b87fd8; }
           .sourceex-resource[data-category="other"] .sourceex-resource-type { color: #a0a8b0; }
+          #sourceex-container.sourceex-fully-hidden { display: none !important; }
         </style>
         <div id="sourceex-wrapper">
           <div id="sourceex-drag" title="Move"></div>
@@ -251,7 +254,7 @@
             <div id="sourceex-title" title="Move">
               <span id="sourceex-title-text">SourceEX</span>
               <div id="sourceex-title-buttons">
-                <button type="button" id="sourceex-hide-btn" title="Hide the floating button (use SX tab or Ctrl+Shift+E to open)">Hide button</button>
+                <span class="sourceex-hide-hint" title="Fully hide the widget">ctrl+shift+x to hide</span>
                 <button type="button" id="sourceex-fresh">Refresh</button>
                 <button type="button" id="sourceex-export-all" disabled>Export all</button>
                 <button type="button" id="sourceex-clear">Clear</button>
@@ -272,6 +275,7 @@
       const panel = document.getElementById('sourceex-panel');
       const listEl = document.getElementById('sourceex-list');
       const dragHandle = document.getElementById('sourceex-drag');
+      const minimalTab = document.getElementById('sourceex-minimal-tab');
       const btnClear = document.getElementById('sourceex-clear');
       const btnFresh = document.getElementById('sourceex-fresh');
       const btnExportAll = document.getElementById('sourceex-export-all');
@@ -279,6 +283,37 @@
       const resizeHandle = document.getElementById('sourceex-resize');
       const resizeHandleLeft = document.getElementById('sourceex-resize-left');
       const titleBar = document.getElementById('sourceex-title');
+
+      GM.getValue(FULLY_HIDDEN_KEY, false).then((hidden) => {
+        if (hidden) container.classList.add('sourceex-fully-hidden');
+      }).catch(() => {});
+
+      GM.getValue(BUTTON_HIDDEN_KEY, false).then((hidden) => {
+        if (hidden) wrapper.classList.add('sourceex-button-hidden');
+      }).catch(() => {});
+
+      let chordFired = false;
+      document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'x' && e.ctrlKey && e.shiftKey) {
+          if (!chordFired) {
+            chordFired = true;
+            container.classList.toggle('sourceex-fully-hidden');
+            const hidden = container.classList.contains('sourceex-fully-hidden');
+            GM.setValue(FULLY_HIDDEN_KEY, hidden).catch(() => {});
+            e.preventDefault();
+          }
+        }
+        if (e.key.toLowerCase() === 'e' && e.ctrlKey && e.shiftKey) {
+          panel.classList.add('open');
+          GM.setValue(PANEL_OPEN_KEY, true).catch(() => {});
+          renderList();
+          startLiveResourceObserver();
+          e.preventDefault();
+        }
+      });
+      document.addEventListener('keyup', (e) => {
+        if (e.key.toLowerCase() === 'x') chordFired = false;
+      });
 
       GM.getValue(POSITION_KEY, '{}').then((raw) => {
         const pos = safeParseJson(raw, {});
@@ -470,6 +505,15 @@
           stopLiveResourceObserver();
         }
       });
+
+      if (minimalTab) {
+        minimalTab.addEventListener('click', () => {
+          panel.classList.add('open');
+          GM.setValue(PANEL_OPEN_KEY, true).catch(() => {});
+          renderList();
+          startLiveResourceObserver();
+        });
+      }
 
       btnClear.addEventListener('click', () => {
         GM.setValue(STORAGE_KEY, '{}').then(() => {
