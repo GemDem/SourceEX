@@ -4,6 +4,8 @@
   // @match        *://*/*
   // @grant        GM.setValue
   // @grant        GM.getValue
+  // @grant        GM_addElement
+  // @grant        GM_addElement
   // @run-at       document_start
   // @namespace    https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
   // @updateURL    https://raw.githubusercontent.com/GemDem/SourceEX/refs/heads/main/sourceex-widget.user.js
@@ -23,6 +25,92 @@
     const PANEL_MIN_HEIGHT = 200;
     const PANEL_DEFAULT_WIDTH = 420;
     const PANEL_DEFAULT_HEIGHT = 360;
+
+    const SOURCEEX_CSS = `
+#sourceex-container { font-family: system-ui, sans-serif; font-size: 13px; }
+#sourceex-wrapper { position: fixed; top: 12px; right: 12px; z-index: 2147483647; display: inline-flex; align-items: flex-start; gap: 0; }
+#sourceex-drag { padding: 8px 4px; cursor: move; color: #888; background: #1a1a2e; border: 1px solid #333; border-right: none; border-radius: 8px 0 0 8px; display: flex; align-items: center; }
+#sourceex-drag:hover { color: #aaa; }
+#sourceex-drag::before { content: '⋮⋮'; font-size: 12px; letter-spacing: -2px; }
+#sourceex-toggle { padding: 8px 12px; background: #1a1a2e; color: #eee; border: 1px solid #333; border-radius: 0 8px 8px 0; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+#sourceex-button-hidden #sourceex-drag,
+#sourceex-button-hidden #sourceex-toggle { display: none !important; }
+#sourceex-toggle:hover { background: #16213e; }
+#sourceex-wrapper.sourceex-button-hidden #sourceex-drag,
+#sourceex-wrapper.sourceex-button-hidden #sourceex-toggle { display: none !important; }
+#sourceex-minimal-tab { display: none; padding: 6px 10px; background: #1a1a2e; color: #888; border: 1px solid #333; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+#sourceex-wrapper.sourceex-button-hidden #sourceex-minimal-tab { display: flex; align-items: center; justify-content: center; }
+#sourceex-minimal-tab:hover { background: #16213e; color: #eee; }
+#sourceex-panel { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; width: 420px; max-width: calc(100vw - 24px); height: 360px; max-height: calc(100vh - 72px); min-width: 280px; min-height: 200px; z-index: 2147483647; background: #1a1a2e; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); overflow: hidden; flex-direction: column; box-sizing: border-box; }
+#sourceex-panel.open { display: flex; }
+#sourceex-resize { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; background: linear-gradient(135deg, transparent 50%, #333 50%, #333 55%, transparent 55%); border-radius: 0 0 8px 0; }
+#sourceex-resize:hover { background: linear-gradient(135deg, transparent 50%, #555 50%, #555 55%, transparent 55%); }
+#sourceex-resize-left { position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; cursor: sw-resize; background: linear-gradient(225deg, transparent 50%, #333 50%, #333 55%, transparent 55%); border-radius: 0 0 0 8px; }
+#sourceex-resize-left:hover { background: linear-gradient(225deg, transparent 50%, #555 50%, #555 55%, transparent 55%); }
+#sourceex-title { padding: 12px; font-weight: 700; border-bottom: 1px solid #333; background: #16213e; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; cursor: move; }
+#sourceex-title-text { flex: 1; min-width: 0; }
+#sourceex-title-buttons { display: flex; gap: 6px; }
+#sourceex-title-buttons button { padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #eee; }
+#sourceex-title-buttons button:hover { background: #16213e; }
+#sourceex-title-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
+#sourceex-title-buttons button:disabled:hover { background: #0f3460; }
+.sourceex-hide-hint { font-size: 10px; color: #666; margin-right: 4px; align-self: center; }
+#sourceex-search { flex: 1 1 100%; margin-top: 6px; padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #333; background: #0d0d1a; color: #e0e0e0; box-sizing: border-box; }
+#sourceex-search::placeholder { color: #666; }
+#sourceex-search:focus { outline: none; border-color: #0f3460; }
+#sourceex-list { overflow: auto; padding: 8px; flex: 1; min-height: 0; }
+.sourceex-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sourceex-item:hover { background: #252540; }
+.sourceex-item-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sourceex-item.detail-open .sourceex-item-url { display: none; }
+.sourceex-badge { flex-shrink: 0; background: #0f3460; color: #eee; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.sourceex-detail { display: none; padding: 8px 10px 10px 12px; background: #0d0d1a; border-radius: 6px; margin-top: 2px; margin-bottom: 6px; box-sizing: border-box; width: 100%; }
+.sourceex-detail.open { display: block; }
+.sourceex-detail-url { font-size: 13px; color: #fff; margin-bottom: 8px; word-break: break-all; padding-bottom: 6px; border-bottom: 1px solid #252540; }
+.sourceex-resource { font-size: 11px; padding: 4px 0; word-break: break-all; color: #a0a0a0; }
+.sourceex-resource-type { color: #6c9bcf; margin-right: 6px; }
+.sourceex-item a, .sourceex-detail-url a { color: #6c9bcf; text-decoration: none; }
+.sourceex-item a:hover, .sourceex-detail-url a:hover { text-decoration: underline; }
+.sourceex-export-btn { flex-shrink: 0; padding: 2px 6px; font-size: 11px; cursor: pointer; border-radius: 4px; border: 1px solid #333; background: #0f3460; color: #eee; }
+.sourceex-export-btn:hover { background: #16213e; }
+.sourceex-cat-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex-shrink: 0; }
+.sourceex-cat-btn { padding: 2px 6px; font-size: 10px; cursor: pointer; border-radius: 4px; border: 1px solid #333; background: #252540; color: #a0a0a0; }
+.sourceex-cat-btn.has-count { background: #1e3a5f; color: #b8d4f0; border-color: #2a4a6e; }
+.sourceex-cat-btn:hover { background: #333355; color: #eee; }
+.sourceex-cat-btn.has-count:hover { background: #2a4a6e; color: #eee; }
+.sourceex-cat-btn.active { background: #0f3460; color: #eee; border-color: #3a6ea5; }
+.sourceex-cat-btn .sourceex-cat-num { margin-left: 2px; font-weight: 600; color: #8ab4f8; }
+.sourceex-cat-btn[data-category="all"].has-count { background: #1a3a4a; color: #5ab9e6; border-color: #2a5060; }
+.sourceex-cat-btn[data-category="all"].has-count:hover { background: #2a5060; }
+.sourceex-cat-btn[data-category="all"].active { background: #0a3040; border-color: #5ab9e6; }
+.sourceex-cat-btn[data-category="all"].has-count .sourceex-cat-num { color: #5ab9e6; }
+.sourceex-cat-btn[data-category="css"].has-count { background: #3d2e1a; color: #e6a23c; border-color: #5c4a2a; }
+.sourceex-cat-btn[data-category="css"].has-count:hover { background: #5c4a2a; }
+.sourceex-cat-btn[data-category="css"].active { background: #5c3d0a; border-color: #e6a23c; }
+.sourceex-cat-btn[data-category="css"].has-count .sourceex-cat-num { color: #e6a23c; }
+.sourceex-cat-btn[data-category="js"].has-count { background: #3d3a1a; color: #e6c229; border-color: #5c582a; }
+.sourceex-cat-btn[data-category="js"].has-count:hover { background: #5c582a; }
+.sourceex-cat-btn[data-category="js"].active { background: #5c4d0a; border-color: #e6c229; }
+.sourceex-cat-btn[data-category="js"].has-count .sourceex-cat-num { color: #e6c229; }
+.sourceex-cat-btn[data-category="img"].has-count { background: #1a2e1a; color: #67c23a; border-color: #2a4a2a; }
+.sourceex-cat-btn[data-category="img"].has-count:hover { background: #2a4a2a; }
+.sourceex-cat-btn[data-category="img"].active { background: #0a3d0a; border-color: #67c23a; }
+.sourceex-cat-btn[data-category="img"].has-count .sourceex-cat-num { color: #67c23a; }
+.sourceex-cat-btn[data-category="xhr"].has-count { background: #2e1a3d; color: #b87fd8; border-color: #4a2a5c; }
+.sourceex-cat-btn[data-category="xhr"].has-count:hover { background: #4a2a5c; }
+.sourceex-cat-btn[data-category="xhr"].active { background: #3d0a5c; border-color: #b87fd8; }
+.sourceex-cat-btn[data-category="xhr"].has-count .sourceex-cat-num { color: #b87fd8; }
+.sourceex-cat-btn[data-category="other"].has-count { background: #2a2a2e; color: #a0a8b0; border-color: #404050; }
+.sourceex-cat-btn[data-category="other"].has-count:hover { background: #404050; }
+.sourceex-cat-btn[data-category="other"].active { background: #1a1a20; border-color: #a0a8b0; }
+.sourceex-cat-btn[data-category="other"].has-count .sourceex-cat-num { color: #a0a8b0; }
+.sourceex-resource[data-category="css"] .sourceex-resource-type { color: #e6a23c; }
+.sourceex-resource[data-category="js"] .sourceex-resource-type { color: #e6c229; }
+.sourceex-resource[data-category="img"] .sourceex-resource-type { color: #67c23a; }
+.sourceex-resource[data-category="xhr"] .sourceex-resource-type { color: #b87fd8; }
+.sourceex-resource[data-category="other"] .sourceex-resource-type { color: #a0a8b0; }
+#sourceex-container.sourceex-fully-hidden { display: none !important; }
+`;
 
     const pageOrigin = () => window.location.origin;
 
@@ -160,94 +248,17 @@
       const SIZE_KEY = 'sourceex_size';
       const PANEL_OPEN_KEY = 'sourceex_panel_open';
 
+      if (typeof GM_addElement !== 'undefined') {
+        GM_addElement('style', { textContent: SOURCEEX_CSS });
+      } else {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = SOURCEEX_CSS;
+        (document.head || document.documentElement).appendChild(styleEl);
+      }
+
       const container = document.createElement('div');
       container.id = 'sourceex-container';
       container.innerHTML = `
-        <style>
-          #sourceex-container { font-family: system-ui, sans-serif; font-size: 13px; }
-          #sourceex-wrapper { position: fixed; top: 12px; right: 12px; z-index: 2147483647; display: inline-flex; align-items: flex-start; gap: 0; }
-          #sourceex-drag { padding: 8px 4px; cursor: move; color: #888; background: #1a1a2e; border: 1px solid #333; border-right: none; border-radius: 8px 0 0 8px; display: flex; align-items: center; }
-          #sourceex-drag:hover { color: #aaa; }
-          #sourceex-drag::before { content: '⋮⋮'; font-size: 12px; letter-spacing: -2px; }
-          #sourceex-toggle { padding: 8px 12px; background: #1a1a2e; color: #eee; border: 1px solid #333; border-radius: 0 8px 8px 0; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-          #sourceex-button-hidden #sourceex-drag,
-          #sourceex-button-hidden #sourceex-toggle { display: none !important; }
-          #sourceex-toggle:hover { background: #16213e; }
-          #sourceex-wrapper.sourceex-button-hidden #sourceex-drag,
-          #sourceex-wrapper.sourceex-button-hidden #sourceex-toggle { display: none !important; }
-          #sourceex-minimal-tab { display: none; padding: 6px 10px; background: #1a1a2e; color: #888; border: 1px solid #333; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-          #sourceex-wrapper.sourceex-button-hidden #sourceex-minimal-tab { display: flex; align-items: center; justify-content: center; }
-          #sourceex-minimal-tab:hover { background: #16213e; color: #eee; }
-          #sourceex-panel { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; width: 420px; max-width: calc(100vw - 24px); height: 360px; max-height: calc(100vh - 72px); min-width: 280px; min-height: 200px; z-index: 2147483647; background: #1a1a2e; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); overflow: hidden; flex-direction: column; box-sizing: border-box; }
-          #sourceex-panel.open { display: flex; }
-          #sourceex-resize { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; background: linear-gradient(135deg, transparent 50%, #333 50%, #333 55%, transparent 55%); border-radius: 0 0 8px 0; }
-          #sourceex-resize:hover { background: linear-gradient(135deg, transparent 50%, #555 50%, #555 55%, transparent 55%); }
-          #sourceex-resize-left { position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; cursor: sw-resize; background: linear-gradient(225deg, transparent 50%, #333 50%, #333 55%, transparent 55%); border-radius: 0 0 0 8px; }
-          #sourceex-resize-left:hover { background: linear-gradient(225deg, transparent 50%, #555 50%, #555 55%, transparent 55%); }
-          #sourceex-title { padding: 12px; font-weight: 700; border-bottom: 1px solid #333; background: #16213e; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; cursor: move; }
-          #sourceex-title-text { flex: 1; min-width: 0; }
-          #sourceex-title-buttons { display: flex; gap: 6px; }
-          #sourceex-title-buttons button { padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #eee; }
-          #sourceex-title-buttons button:hover { background: #16213e; }
-          #sourceex-title-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
-          #sourceex-title-buttons button:disabled:hover { background: #0f3460; }
-          .sourceex-hide-hint { font-size: 10px; color: #666; margin-right: 4px; align-self: center; }
-          #sourceex-search { flex: 1 1 100%; margin-top: 6px; padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #333; background: #0d0d1a; color: #e0e0e0; box-sizing: border-box; }
-          #sourceex-search::placeholder { color: #666; }
-          #sourceex-search:focus { outline: none; border-color: #0f3460; }
-          #sourceex-list { overflow: auto; padding: 8px; flex: 1; min-height: 0; }
-          .sourceex-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-          .sourceex-item:hover { background: #252540; }
-          .sourceex-item-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .sourceex-item.detail-open .sourceex-item-url { display: none; }
-          .sourceex-badge { flex-shrink: 0; background: #0f3460; color: #eee; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-          .sourceex-detail { display: none; padding: 8px 10px 10px 12px; background: #0d0d1a; border-radius: 6px; margin-top: 2px; margin-bottom: 6px; box-sizing: border-box; width: 100%; }
-          .sourceex-detail.open { display: block; }
-          .sourceex-detail-url { font-size: 13px; color: #fff; margin-bottom: 8px; word-break: break-all; padding-bottom: 6px; border-bottom: 1px solid #252540; }
-          .sourceex-resource { font-size: 11px; padding: 4px 0; word-break: break-all; color: #a0a0a0; }
-          .sourceex-resource-type { color: #6c9bcf; margin-right: 6px; }
-          .sourceex-item a, .sourceex-detail-url a { color: #6c9bcf; text-decoration: none; }
-          .sourceex-item a:hover, .sourceex-detail-url a:hover { text-decoration: underline; }
-          .sourceex-export-btn { flex-shrink: 0; padding: 2px 6px; font-size: 11px; cursor: pointer; border-radius: 4px; border: 1px solid #333; background: #0f3460; color: #eee; }
-          .sourceex-export-btn:hover { background: #16213e; }
-          .sourceex-cat-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex-shrink: 0; }
-          .sourceex-cat-btn { padding: 2px 6px; font-size: 10px; cursor: pointer; border-radius: 4px; border: 1px solid #333; background: #252540; color: #a0a0a0; }
-          .sourceex-cat-btn.has-count { background: #1e3a5f; color: #b8d4f0; border-color: #2a4a6e; }
-          .sourceex-cat-btn:hover { background: #333355; color: #eee; }
-          .sourceex-cat-btn.has-count:hover { background: #2a4a6e; color: #eee; }
-          .sourceex-cat-btn.active { background: #0f3460; color: #eee; border-color: #3a6ea5; }
-          .sourceex-cat-btn .sourceex-cat-num { margin-left: 2px; font-weight: 600; color: #8ab4f8; }
-          .sourceex-cat-btn[data-category="all"].has-count { background: #1a3a4a; color: #5ab9e6; border-color: #2a5060; }
-          .sourceex-cat-btn[data-category="all"].has-count:hover { background: #2a5060; }
-          .sourceex-cat-btn[data-category="all"].active { background: #0a3040; border-color: #5ab9e6; }
-          .sourceex-cat-btn[data-category="all"].has-count .sourceex-cat-num { color: #5ab9e6; }
-          .sourceex-cat-btn[data-category="css"].has-count { background: #3d2e1a; color: #e6a23c; border-color: #5c4a2a; }
-          .sourceex-cat-btn[data-category="css"].has-count:hover { background: #5c4a2a; }
-          .sourceex-cat-btn[data-category="css"].active { background: #5c3d0a; border-color: #e6a23c; }
-          .sourceex-cat-btn[data-category="css"].has-count .sourceex-cat-num { color: #e6a23c; }
-          .sourceex-cat-btn[data-category="js"].has-count { background: #3d3a1a; color: #e6c229; border-color: #5c582a; }
-          .sourceex-cat-btn[data-category="js"].has-count:hover { background: #5c582a; }
-          .sourceex-cat-btn[data-category="js"].active { background: #5c4d0a; border-color: #e6c229; }
-          .sourceex-cat-btn[data-category="js"].has-count .sourceex-cat-num { color: #e6c229; }
-          .sourceex-cat-btn[data-category="img"].has-count { background: #1a2e1a; color: #67c23a; border-color: #2a4a2a; }
-          .sourceex-cat-btn[data-category="img"].has-count:hover { background: #2a4a2a; }
-          .sourceex-cat-btn[data-category="img"].active { background: #0a3d0a; border-color: #67c23a; }
-          .sourceex-cat-btn[data-category="img"].has-count .sourceex-cat-num { color: #67c23a; }
-          .sourceex-cat-btn[data-category="xhr"].has-count { background: #2e1a3d; color: #b87fd8; border-color: #4a2a5c; }
-          .sourceex-cat-btn[data-category="xhr"].has-count:hover { background: #4a2a5c; }
-          .sourceex-cat-btn[data-category="xhr"].active { background: #3d0a5c; border-color: #b87fd8; }
-          .sourceex-cat-btn[data-category="xhr"].has-count .sourceex-cat-num { color: #b87fd8; }
-          .sourceex-cat-btn[data-category="other"].has-count { background: #2a2a2e; color: #a0a8b0; border-color: #404050; }
-          .sourceex-cat-btn[data-category="other"].has-count:hover { background: #404050; }
-          .sourceex-cat-btn[data-category="other"].active { background: #1a1a20; border-color: #a0a8b0; }
-          .sourceex-cat-btn[data-category="other"].has-count .sourceex-cat-num { color: #a0a8b0; }
-          .sourceex-resource[data-category="css"] .sourceex-resource-type { color: #e6a23c; }
-          .sourceex-resource[data-category="js"] .sourceex-resource-type { color: #e6c229; }
-          .sourceex-resource[data-category="img"] .sourceex-resource-type { color: #67c23a; }
-          .sourceex-resource[data-category="xhr"] .sourceex-resource-type { color: #b87fd8; }
-          .sourceex-resource[data-category="other"] .sourceex-resource-type { color: #a0a8b0; }
-          #sourceex-container.sourceex-fully-hidden { display: none !important; }
-        </style>
         <div id="sourceex-wrapper">
           <div id="sourceex-drag" title="Move"></div>
           <button type="button" id="sourceex-toggle">SourceEX</button>
